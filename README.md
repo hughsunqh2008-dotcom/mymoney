@@ -1,2 +1,218 @@
-# Mymoney
-This is for a money management project.
+# mymoney
+
+> **⚠️ 注意**：这个是**完整版** README。你原来的 `README.md` 只有两行占位内容，
+> 但因为文件被占用无法直接覆盖。
+> **请把本文件改名为 `README.md` 覆盖掉旧的**（在 VS Code 左侧文件列表里右键
+> → Rename，或在资源管理器里改）。
+> 改完之后可以把文件名里"完整版"那行提示删掉。
+
+个人账目分析系统：导入银行账单 CSV → 自动分类 → 统计 → 生成报告与图表。
+
+这是一个**学习用**的项目，配套《项目说明书-mymoney个人账目分析系统.md》
+（在 `C:\Users\hughs\deepseek's\` 下），目的是通过一个结构完整的中型项目，
+把 Python 基础和常用库串联起来。
+
+---
+
+## 一、环境配置（已完成的先打勾）
+
+- [x] Python 3.13.15 已安装于 `C:\Python`
+- [x] 项目目录 `C:\python_programe\mymoney` 已建
+- [x] git 仓库已初始化（有一次 Initial commit）
+- [x] `.gitignore` 已创建
+- [x] `requirements.txt` 已创建
+- [x] 目录骨架与各模块骨架文件已创建
+- [ ] **虚拟环境 `.venv` 未创建** ← 你要做的第一步
+
+### 第 1 步：在 VS Code 里创建虚拟环境（不用命令行）
+
+1. 打开 VS Code
+2. `文件` → `打开文件夹...` → 选择 `C:\python_programe\mymoney`
+3. 按 `Ctrl+Shift+P` 打开命令面板
+4. 输入并选择：**`Python: Create Environment`**
+5. 选择 **`Venv`**
+6. 选择解释器 **`Python 3.13.15`**（路径是 `C:\Python\python.exe`）
+   > ⚠️ **不要选 3.14**。你的机器上 `py` 命令默认是 3.14，
+   > 而 3.14 缺一些库的预编译包。选错的话，以后装 `pymavlink` 之类的会失败。
+7. 勾选 **`requirements.txt`**（它会顺手把依赖装好）
+8. 等它跑完（窗口右下角有进度提示）
+
+> **为什么用图形界面而不是命令行**：效果完全一样，但图形界面不会因为
+> PowerShell 的执行策略、路径转义、编码问题而卡住。
+> 等你以后想学命令行了，随时可以改用 `py -3.13 -m venv .venv`。
+
+### 第 2 步：验证环境选对了
+
+这一步**必须做**，因为"以为选对了但没选对"是最隐蔽的坑。
+
+1. 在 VS Code 里新建文件 `check_env.py`，内容：
+
+```python
+import sys
+print("解释器路径:", sys.executable)
+print("版本:", sys.version)
+
+for mod in ["matplotlib", "pytest"]:
+    try:
+        __import__(mod)
+        print(f"[OK] {mod}")
+    except ImportError:
+        print(f"[缺失] {mod}")
+```
+
+2. 点 VS Code 右上角的 **▶ 运行** 按钮
+3. **期望输出**：
+   - 解释器路径里**必须包含 `.venv`**
+   - 版本是 **3.13.15**
+   - matplotlib 和 pytest 都是 `[OK]`
+
+**如果路径里没有 `.venv`**：按 `Ctrl+Shift+P` → `Python: Select Interpreter`
+→ 选带 `.venv` 的那个，再重新运行。
+
+> 验证通过后可以直接删掉 `check_env.py`，它只是用来验证的。
+
+### 第 3 步：确认 git 忽略了虚拟环境
+
+看 VS Code 左侧的**源代码管理**面板（分支图标）：
+**不应该出现 `.venv` 里成千上万的文件**。
+
+如果出现了，说明 `.gitignore` 没生效。检查两件事：
+1. 文件是不是真的叫 `.gitignore`（Windows 有时会偷偷加 `.txt` 后缀）
+2. `.venv/` 那一行在不在文件里
+
+---
+
+## 二、目录结构
+
+```
+mymoney/
+├── .venv/                 虚拟环境（不进 git）
+├── .gitignore             告诉 git 忽略什么
+├── requirements.txt       依赖清单
+├── README.md              本文件
+├── mymoney.py             命令行入口（只做参数解析和调度）
+├── make_gbk_sample.py     生成 GBK 测试数据的辅助脚本
+├── src/                   所有业务逻辑
+│   ├── __init__.py
+│   ├── models.py          ① 数据模型
+│   ├── parser.py          ② 读 CSV、清洗、容错
+│   ├── categorizer.py     ③ 按规则分类
+│   ├── storage.py         ④ 存储与去重
+│   ├── analyzer.py        ⑤ 统计与分析
+│   ├── reporter.py        ⑥ 报告输出
+│   └── plotter.py         ⑦ 画图
+├── config/
+│   └── categories.json    分类规则（改它就能改分类结果）
+├── data/                  测试数据
+│   ├── 2026-01.csv        正常格式
+│   ├── 2026-02.csv        脏数据（空行、文字金额、列名不同）
+│   └── 2026-03.csv        需要你用脚本生成（GBK 编码）
+├── out/                   输出（报告、图）——不进 git
+└── tests/
+    └── test_parser.py     测试
+```
+
+---
+
+## 三、开发顺序
+
+**严格按模块顺序做，每个模块做完必须能独立跑通再往下。**
+不要攒着一起测——攒着的结果是面对几百行代码和一堆报错无从下手。
+
+| 模块 | 文件 | 做什么 |
+|---|---|---|
+| 0 | — | 造数据（已完成大部分） |
+| 1 | `src/models.py` | `Transaction` 类 |
+| 2 | `src/parser.py` | CSV 解析与清洗 ← **最硬的一块** |
+| 3 | `src/categorizer.py` | 分类引擎 |
+| 4 | `src/storage.py` | 存储与去重 ← **第二个硬点** |
+| 5 | `src/analyzer.py` | 统计 |
+| 6 | `src/reporter.py` | 报告输出 |
+| 7 | `src/plotter.py` | 画图 |
+| 8 | `mymoney.py` + `tests/` | 接通入口、写测试 |
+
+**当前状态**：所有模块文件都是**骨架**——函数签名和说明写好了，
+函数体是 `raise NotImplementedError`。你要把它们填上。
+
+### 先跑一下确认骨架是通的
+
+在 VS Code 的终端里（`Ctrl+`` `，反引号）：
+
+```
+python mymoney.py --help
+```
+
+**这会正常输出帮助信息**，因为参数解析已经写好了。
+
+再试：
+
+```
+python mymoney.py --report
+```
+
+期望看到：
+```
+[未实现] 模块 5 和 6 还没实现：先做 src/analyzer.py
+```
+
+**看到这句说明骨架打通了**，可以开始填模块 1 了。
+
+---
+
+## 四、我的关键设计决策
+
+> **这一节是给未来的你和别人看的。每做一个设计决策就加一条。**
+> 面试或申请时，别人问的就是这一节的内容。
+
+### 决策 1：（这是格式示例，请替换成你自己的）
+
+- **背景**：模块 1 要求决定金额用负数还是正数表示支出。
+- **选择**:我选择负数表示支出
+- **理由**：保留原始数据，方便计算
+- **代价**：支出收入界限并不清晰
+
+---
+
+## 五、我遇到的问题和解决过程
+@classmethod
+缺少该修饰后不能生成对应cls并返回
+@classmethod @staticmethod
+
+
+
+## 六、已知限制
+
+> 诚实列出这个项目**处理不了什么**。
+> 写不出来说明你还没想透——而"承认方案有局限"比"写出完美代码"更被看重。
+
+对导入账单的格式规范要求高
+若有完全相同的两个交易，则会出现生成uid相同的问题
+
+---
+
+## 七、常用命令速查
+
+```bash
+# 看命令行帮助
+python mymoney.py --help
+
+# 生成 GBK 测试数据
+python make_gbk_sample.py
+
+# 跑测试
+python -m pytest -v
+```
+
+---
+
+## 八、卡住时怎么办
+
+1. **读报错信息**，从第一行读起（不要只看最后一行）
+2. 看不懂就把报错**关键词**粘进搜索框
+3. 在出错那行前面加 `print()`，看**变量的实际值**
+4. 值不对 → **往回找"这个值是从哪来的"**（错误几乎总在更早的地方）
+5. 用**断点**：在 VS Code 里点行号左边设红点，按 F5 启动，然后单步走
+6. 还不行 → 写一个**10 行以内的最小复现脚本**
+7. **这时候才去查书**
+
+**每个模块文件顶部的注释里都写了"卡住去哪查"**，精确到 Automate 的章节号。
