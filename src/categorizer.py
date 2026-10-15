@@ -33,44 +33,32 @@ from pathlib import Path
 
 from .models import Transaction
 
-# 匹配不到任何规则时用的分类名
+import json
+
 UNCATEGORIZED = "未分类"
 
 
 def load_rules(path: str | Path) -> dict[str, list[str]]:
-    """从 JSON 文件读取分类规则。
-
-    参数：
-        path: categories.json 的路径
-    返回：
-        形如 {"餐饮": ["星巴克", "美团"], "交通": ["地铁"]}
-
-    提示：
-        - JSON 里我加了几行以 "_" 开头的说明性键（"_说明"、"_格式"、""
-          _重要"），它们的值是字符串而不是列表。
-          读进来时要跳过它们，否则后面遍历会出错。
-    """
-    # TODO(模块3)
-    raise NotImplementedError
+    with open(path,'r',encoding='utf-8-sig') as fin:
+        rules = json.load(fin)
+        rules = {k: v for k, v in rules.items() if not k.startswith('_')}
+    return rules
 
 
 def categorize(tx: Transaction, rules: dict[str, list[str]]) -> str:
-    """给一笔交易判断分类，并写回 tx.category。
+    if tx.amount > 0: return '收入'
+    for rule in rules:
+        for desc in rules[rule]:
+            if desc.lower() in tx.norm_desc.lower(): return rule
+    return UNCATEGORIZED
 
-    参数：
-        tx:    交易对象
-        rules: load_rules() 读出来的规则
-    返回：
-        分类名；匹配不到返回 UNCATEGORIZED
-
-    注意：这个函数有"副作用"——它会修改 tx。
-         这是好设计还是坏设计？值得想一想（写进 README 可选）。
-    """
-    # TODO(模块3)
-    raise NotImplementedError
 
 
 def categorize_all(txs: list[Transaction], rules: dict[str, list[str]]) -> dict[str, int]:
-    """给一批交易全部分类，返回统计：{分类名: 条数}。"""
-    # TODO(模块3)
-    raise NotImplementedError
+    category = {}
+    for transaction in txs:
+        transaction.category = categorize(transaction,rules)
+        if transaction.category in category: category[transaction.category]+=1
+        else: category[transaction.category] =1
+    
+    return category

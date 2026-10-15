@@ -49,10 +49,12 @@ CURRENCY_CANDIDATES = ['币种','货币','货币种类','Currency','currency']
 AMOUNT_CANDIDATE = ['金额','总额','Amount','amount']
 
 
+_BRACKET_RE = re.compile(r'[（(][^（）()]+?([路店街号城区]|广场|中心|分店|支)[）)]')
+
+
 def normalize_description(raw: str) -> str:
-    
     normalizing = " ".join(raw.split())
-    return re.sub(r'\(.+?([路店街号城区]|广场|中心|分店|支店)\)|\（.+?([路店街号城区]|广场|中心|分店|支.)\）','',normalizing).strip()
+    return _BRACKET_RE.sub('', normalizing)
 
 def parse_row(row: dict) -> Transaction | None:
     # ① DictReader 读出的每个 row，它的 keys 就是表头
@@ -92,39 +94,45 @@ def parse_row(row: dict) -> Transaction | None:
     
     
 def parse_file(path: str | Path) -> tuple[list[Transaction], dict]:
+    error_info = []
     try:
-        parsing_info = {"文件":path,}
+        parsing_info = {"文件":path}
         transaction_list = []
         error_num = 0
         amount = 0
-        with open(path,'r',encoding='utf-8') as fin:
+        with open(path,'r',encoding='utf-8-sig') as fin:
             reader = csv.DictReader(fin)
-            for row in reader:
+            for line_no,row in enumerate(reader,start=2):
                 parsed_row = parse_row(row)
                 if parsed_row: transaction_list.append(parsed_row)
-                else: error_num+=1
+                else: 
+                    error_info.append((line_no,row))
+                    error_num+=1
                 amount+=1
-        decode_type = 'utf-8'
+        decode_type = 'utf-8-sig'
     except UnicodeDecodeError:
-        parsing_info = {"文件":path,}
+        parsing_info = {"文件":path}
         transaction_list = []
         error_num = 0
         amount = 0
-        with open(path,'r',encoding='gbk') as fin:
+        with open(path,'r',encoding='gb18030') as fin:
             reader = csv.DictReader(fin)
-            for row in reader:
+            for line_no,row in enumerate(reader,start=2):
                 parsed_row = parse_row(row)
                 if parsed_row: transaction_list.append(parsed_row)
-                else: error_num+=1
+                else:
+                    error_info.append((line_no,row)) 
+                    error_num+=1
                 amount+=1
-        decode_type = 'gbk'
+        decode_type = 'gb18030'
     
     parsing_info = {
         '文件':path,
         '编码':decode_type,
         '总数':amount,
         '成功':amount - error_num,
-        '失败':error_num
+        '失败':error_num,
+        '失败信息':error_info
     }
                 
     return (transaction_list,parsing_info)
