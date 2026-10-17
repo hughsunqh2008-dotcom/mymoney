@@ -42,48 +42,48 @@ from pathlib import Path
 
 from .models import Transaction
 
+import json
+
+from src import categorizer
+
 # 默认的存储文件位置（相对项目根目录）
 DEFAULT_STORE = Path("data") / "transactions.json"
 
 
 def load_all(path: str | Path = DEFAULT_STORE) -> list[Transaction]:
-    """读出所有已保存的交易。
-
-    文件不存在时返回空列表（不要报错！第一次运行本来就没有文件）。
-    """
-    # TODO(模块4)
-    raise NotImplementedError
+    path = Path(path)
+    if not path.exists():
+        return []
+    path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(path,'r',encoding='utf-8') as fin:
+        return [Transaction.from_dict(tx) for tx in json.load(fin)]
 
 
 def save_all(txs: list[Transaction], path: str | Path = DEFAULT_STORE) -> None:
-    """把交易全部写入文件（覆盖）。
-
-    提示：
-        - 用 json.dump(..., ensure_ascii=False, indent=2)
-          ensure_ascii=False 是让中文显示成中文，而不是 \\u4e2d\\u6587
-        - 写入前确保父目录存在
-    """
-    # TODO(模块4)
-    raise NotImplementedError
-
+    data = [tx.to_dict() for tx in txs]
+    
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(path,'w',encoding='utf-8') as fin:
+        json.dump(data,fin,ensure_ascii=False,indent=2)
+        
 
 def append_new(new_txs: list[Transaction], path: str | Path = DEFAULT_STORE) -> int:
-    """把新交易追加进去，自动去重。
-
-    返回：实际新增了几条。
-
-    这是本项目最需要动脑的函数。
-    提示：
-        - 先 load_all() 拿到已有的
-        - 用已有交易的 uid 建一个 set
-        - 遍历 new_txs，uid 不在 set 里的才要
-        - 别忘了把新加的 uid 也加进 set（否则文件内部自己会重复）
-    """
-    # TODO(模块4)
-    raise NotImplementedError
-
+    transactions = load_all(path)
+    seen = set(tx.uid for tx in transactions)
+    num = 0
+    for tx in new_txs:
+        if tx.uid not in seen:
+            transactions.append(tx)
+            num += 1
+    
+    save_all(transactions,path)
+    
+    return num
+        
 
 def count_by_category(path: str | Path = DEFAULT_STORE) -> dict[str, int]:
-    """统计已保存数据里各分类的条数——用来快速验证存储是否正常。"""
-    # TODO(模块4)
-    raise NotImplementedError
+    data = load_all(path)
+    return categorizer.categorize_all(data,categorizer.load_rules("C:\\python_programe\\mymoney\\config\\categories.json"))
