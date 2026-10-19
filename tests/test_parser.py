@@ -93,6 +93,27 @@ def test_parse_amount_ok():
 def test_parse_amount_bad_returns_none():
     assert parser._parse_amount("abc") is None          # ← 不抛异常
 
+def test_parse_amount_zero_returns_none():
+    """金额为 0 视为无效行：统计口径都假设"有金额才算交易"。"""
+    assert parser._parse_amount("0.00") is None
+    assert parser._parse_amount("-0.00") is None
+    assert parser._parse_amount("0") is None
+
+def test_parse_row_rejects_zero_amount():
+    row = {"交易日期": "2026-01-03", "交易描述": "余额查询", "金额": "0.00", "币种": "CNY"}
+    assert parser.parse_row(row) is None
+
+def test_parsed_amounts_are_never_zero():
+    """不变式：解析成功的交易，金额一定不为 0。
+
+    reporter.to_text 用 stats["总支出"] 当百分比的分母，靠的就是这条：
+        cat_stats 非空 ⇒ 至少有一笔支出 ⇒ 总支出 > 0 ⇒ 不会除零
+    如果这条挂了，说明不变式被破坏，reporter 里那道除法就不再安全。
+    """
+    for name in ("2026-01.csv", "2026-02.csv", "2026-03.csv"):
+        txs, _ = parser.parse_file(f"data/{name}")
+        assert all(tx.amount != 0 for tx in txs), name
+
 def test_parse_row_ok():
     tx = parser.parse_row({"交易日期": "2026-01-03", "交易描述": "星巴克(国贸店)",
                            "金额": "-38.00", "币种": "CNY"})

@@ -148,9 +148,12 @@ def _find_column(fieldnames: list[str], candidates: list[str]) -> str | None:
     return
 def _parse_amount(text: str) -> float|None:
     try:
-        return float(text.strip())
+        value = float(text.strip())
     except (ValueError,TypeError):
         return
+    if value == 0:          # 0.00 的"余额查询"类行：没有金额信息，视为无效行
+        return
+    return value
     
 def _parse_date(text: str) -> date|None:
     try:

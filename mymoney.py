@@ -32,7 +32,7 @@ from pathlib import Path
 # 让 `python mymoney.py` 从项目根目录运行时能找到 src 包
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src import analyzer_, storage, reporter
+from src import analyzer_, reporter_, storage
 
 # 项目里的固定目录（用 pathlib，不用字符串拼路径）
 ROOT = Path(__file__).parent

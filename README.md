@@ -53,7 +53,7 @@ mymoney/
 | 3 | `src/categorizer.py` | 完成 |
 | 4 | `src/storage.py` | 完成 |
 | 5 | `src/analyzer.py` | 完成 |
-| 6 | `src/reporter.py` | 未开始 |
+| 6 | `src/reporter.py` | 完成 |
 | 7 | `src/plotter.py` | 未开始 |
 | 8 | `mymoney.py` + 测试 | 未开始 |
 
@@ -171,6 +171,14 @@ mymoney/
 - **空结果是合法的**：这份数据按"含自己"的口径一笔都挑不出来。规则严格与否跟着数据走，不需要为了"有产出"去放松
 - **2026-01 的结果**：房租 3000.00、高铁票 553.00（见"验收记录"）
 - **测试**：`test_find_anomials_flags_the_outlier`、`test_find_anomials_excludes_self_from_average`、`test_find_anomials_jan_hand_checked`
+
+### 11. 金额为 0 的行在解析阶段丢弃
+
+- **选择**：`_parse_amount` 遇到 `0.00` / `-0.00` 返回 `None`，该行计入解析报告的"失败"
+- **理由**：银行导出里的"余额查询""账户验证"这类行记 `0.00`，它没有金额信息，却会变成 `by_category` 里的一个分类（值 `0.0`）。结果就是 `stats["总支出"] == 0` 而 `cat_stats` 非空——`to_text` 算百分比时分母为 0，直接 `ZeroDivisionError`
+- **不变式**：解析成功的交易 `amount != 0`。由此推出 **`cat_stats` 非空 ⇒ `总支出 > 0`**，所以 `reporter` 里不需要为除零做防御。不变式由 `test_parsed_amounts_are_never_zero` 守着
+- **代价**：这类行会被算进"失败"，导入报告的失败数偏高。要区分"解析失败"和"无金额行"，得给 `parse_file` 的返回报告加一个 `跳过` 字段——那会改动契约，连带测试和模块 8
+- **一句话**：脏数据在数据层拦，不在格式化层兜
 
 ---
 
