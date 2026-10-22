@@ -33,15 +33,50 @@ plotter.py —— 图表
 from __future__ import annotations
 
 from pathlib import Path
+import matplotlib
+matplotlib.use("Agg")                       # 不弹窗，纯后台出图
+import matplotlib.pyplot as plt
+from matplotlib.ticker import StrMethodFormatter
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]   # 中文
+plt.rcParams["axes.unicode_minus"] = False             # 负号别变方块
+
+
+def _month_range(start:str,end:str) -> list[str]:
+    months = []
+    start_ = start.split('-')
+    end_ = end.split('-')
+    year = int(start_[0])
+    month = int(start_[1])
+    while (year,month) <= (int(end_[0]),int(end_[1])):
+        month_str = f'{month:02d}'
+        months.append('-'.join((str(year),month_str)))
+        if month == 12:
+            year += 1
+            month = 1
+        else: month +=1
+    
+    return months
+        
+            
 
 
 def trend_chart(month_stats: dict[str, dict[str, float]], out_path: str | Path) -> None:
-    """画收入/支出随月份变化的折线图，保存为 PNG。
-
-    参数：
-        month_stats: analyzer.by_month() 的返回值
-                     形如 {"2026-01": {"收入": ..., "支出": ...}, ...}
-        out_path:    输出文件路径，如 "out/trend.png"
-    """
-    # TODO(模块7)
-    raise NotImplementedError
+    months = _month_range(min(month_stats),max(month_stats))
+    income = []
+    expense = []
+    for month in months:
+        income.append(month_stats.get(month,{}).get('收入'))
+        expense.append(month_stats.get(month,{}).get('支出'))
+    fig, ax = plt.subplots(figsize=(8,4.5),dpi=200)
+    ax.plot(months, income,  marker="o", linewidth=2, label="收入")
+    ax.plot(months, expense, marker="s", linewidth=2, label="支出")
+    ax.set_title("月度收支趋势")
+    ax.set_xlabel("月份")
+    ax.set_ylabel("金额（CNY）")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper left")
+    ax.yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+        

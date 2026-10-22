@@ -32,10 +32,10 @@ from pathlib import Path
 # 让 `python mymoney.py` 从项目根目录运行时能找到 src 包
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src import analyzer_, reporter_, storage
+from src import analyzer, reporter, storage, plotter,parser,categorizer
 
 # 项目里的固定目录（用 pathlib，不用字符串拼路径）
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 OUT_DIR = ROOT / "out"
 CONFIG_DIR = ROOT / "config"
@@ -97,43 +97,88 @@ def build_parser() -> argparse.ArgumentParser:
 # ============================================================
 
 def cmd_import(path: str, verbose: bool) -> int:
-    """【模块 2 + 4】导入一个 CSV：解析 → 分类 → 存入本地。
+    txs, parse_info = parser.parse_file(Path(path))
+    if parse_info['成功'] == 0:
+        print(f"没有一行能解析：{path}", file=sys.stderr)
+        return 1
+    
+    rules = categorizer.load_rules(str(CONFIG_DIR / "categories.json"))
+    categorizer.categorize_all(txs, rules)
+    added = storage.append_new(txs)
+    
+    print(f"总数 {parse_info['总数']}  成功 {parse_info['成功']}  失败 {parse_info['失败']}  新增 {added}")
+    
+    if parse_info["失败"]:
+        print(f"警告：{parse_info['失败']} 行无法解析（--verbose 看明细）", file=sys.stderr)
+        if verbose:
+            for row_no, row in parse_info["失败信息"]:
+                print(f"  第 {row_no} 个数据行：{row}", file=sys.stderr)
 
-    提示：
-        - 解析放在 src/parser.py
-        - 分类放在 src/categorizer.py
-        - 存储放在 src/storage.py
-        这里只负责把它们串起来，并打印结果摘要。
-    """
-    raise NotImplementedError("模块 2 和 4 还没实现：先做 src/parser.py")
+    return 0
 
 
 def cmd_report(month: str | None, verbose: bool) -> int:
-    """【模块 5 + 6】载入数据 → 统计 → 打印文本报告。"""
-    raise NotImplementedError("模块 5 和 6 还没实现：先做 src/analyzer.py")
+    txs = storage.load_all()
+    if month:
+        txs = [t for t in txs if t.date.strftime("%Y-%m") == month]
+    if not txs:
+        print(f"没有数据{('（' + month + '）') if month else ''}，先 --import-file 导入账单", file=sys.stderr)
+        return 1
+    stats      = analyzer.summary(txs)
+    cat_stats  = analyzer.by_category(txs)
+    month_stats= analyzer.by_month(txs)
+    top_txs    = analyzer.top_expenses(txs, n=5)
+
+    if month:
+        text = reporter.to_text(stats=stats,cat_stats=cat_stats,month_stats=month_stats,top_txs=top_txs,month=month)
+    else:
+        text = reporter.to_text(stats=stats,cat_stats=cat_stats,month_stats=month_stats,top_txs=top_txs)
+    print(text,end='')
+    return 0
 
 
 def cmd_top(n: int, category: str | None) -> int:
-    """【模块 5】列出金额最大的 N 笔支出。"""
-    raise NotImplementedError("模块 5 还没实现：先做 src/analyzer.py 的 top_expenses()")
-
+    txs = storage.load_all()
+    top_txs = analyzer.top_expenses(txs,category=category,n=n)
+    
+    if not top_txs:
+        return 2
+    
+    for tx in top_txs:
+        print(f'{tx.date}  {tx.norm_desc}  金额：{tx.amount} 类别：{tx.category} 货币{tx.currency}')
+    return 0
 
 def cmd_export(path: str, month: str | None) -> int:
-    """【模块 6】导出成 CSV 或 JSON（按扩展名判断）。
+    target = Path(path)
+    suffix = target.suffix.lower()
+    if suffix not in {".csv", ".json"}:
+        print(f"--export 只支持 .csv 或 .json，收到 {target.suffix!r}", file=sys.stderr)
+        return 2
 
-    提示：
-        - Path(path).suffix 拿到扩展名
-        - ".csv" → reporter 的 CSV 导出
-        - ".json" → reporter 的 JSON 导出
-        - 其他 → 报错并返回非零退出码
-    """
-    raise NotImplementedError("模块 6 还没实现：先做 src/reporter.py")
+    txs = storage.load_all()
+    if month:
+        txs = [t for t in txs if t.date.strftime("%Y-%m") == month]
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    if suffix == ".csv":
+        reporter.to_csv(txs=txs, out_path=target)
+    else:
+        payload = {
+            "summary": analyzer.summary(txs),
+            "by_category": analyzer.by_category(txs),
+            "by_month": analyzer.by_month(txs),
+            "top_expenses": [t.to_dict() for t in analyzer.top_expenses(txs, n=5)],
+        }
+        reporter.to_json(report=payload, out_path=target)
+    return 0
 
 
 def cmd_plot(month: str | None) -> int:
-    """【模块 7】生成趋势图。"""
-    raise NotImplementedError("模块 7 还没实现：先做 src/plotter.py")
-
+    txs = storage.load_all()
+    month_stats = analyzer.by_month(txs)
+    plotter.trend_chart(month_stats=month_stats,out_path=OUT_DIR/'trend.png')
+    return 0
 
 def ensure_dirs() -> None:
     """确保输出目录存在。
@@ -154,21 +199,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    # 没给任何功能参数时，打印帮助
-    if not any([args.import_path, args.report, args.top, args.export, args.plot]):
-        parser.print_help()
-        return 0
-
     ensure_dirs()
 
     try:
-        if args.import_path:
+        # 判据统一用 is not None：值的真假 ≠ "用户有没有给这个参数"
+        # （args.top == 0 是合法输入，用真值判断会把它当成"没给"）
+        if args.import_path is not None:
             return cmd_import(args.import_path, args.verbose)
         if args.report:
             return cmd_report(args.month, args.verbose)
-        if args.top:
+        if args.top is not None:
             return cmd_top(args.top, args.category)
-        if args.export:
+        if args.export is not None:
             return cmd_export(args.export, args.month)
         if args.plot:
             return cmd_plot(args.month)
@@ -182,6 +224,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[出错] {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
 
+    # 走到这里 = 没有任何命令被命中（空参数，或只给了 --month / --verbose 这类修饰）
+    parser.print_help()
     return 0
 
 

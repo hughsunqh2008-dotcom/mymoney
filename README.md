@@ -54,8 +54,8 @@ mymoney/
 | 4 | `src/storage.py` | 完成 |
 | 5 | `src/analyzer.py` | 完成 |
 | 6 | `src/reporter.py` | 完成 |
-| 7 | `src/plotter.py` | 未开始 |
-| 8 | `mymoney.py` + 测试 | 未开始 |
+| 7 | `src/plotter.py` | 完成 |
+| 8 | `mymoney.py` + 测试 | 完成 |
 
 ---
 

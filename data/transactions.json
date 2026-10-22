@@ -1,0 +1,128 @@
+[
+  {
+    "date": "2026-01-03",
+    "raw_desc": "星巴克(国贸店)",
+    "norm_desc": "星巴克",
+    "amount": -38.0,
+    "currency": "CNY",
+    "category": "餐饮",
+    "uid": "2026-01-03_星巴克(国贸店)_-38.00_CNY"
+  },
+  {
+    "date": "2026-01-03",
+    "raw_desc": "地铁出行",
+    "norm_desc": "地铁出行",
+    "amount": -6.0,
+    "currency": "CNY",
+    "category": "交通",
+    "uid": "2026-01-03_地铁出行_-6.00_CNY"
+  },
+  {
+    "date": "2026-01-05",
+    "raw_desc": "工资",
+    "norm_desc": "工资",
+    "amount": 18500.0,
+    "currency": "CNY",
+    "category": "收入",
+    "uid": "2026-01-05_工资_18500.00_CNY"
+  },
+  {
+    "date": "2026-01-07",
+    "raw_desc": "美团外卖",
+    "norm_desc": "美团外卖",
+    "amount": -52.5,
+    "currency": "CNY",
+    "category": "餐饮",
+    "uid": "2026-01-07_美团外卖_-52.50_CNY"
+  },
+  {
+    "date": "2026-01-08",
+    "raw_desc": "京东商城",
+    "norm_desc": "京东商城",
+    "amount": -299.0,
+    "currency": "CNY",
+    "category": "购物",
+    "uid": "2026-01-08_京东商城_-299.00_CNY"
+  },
+  {
+    "date": "2026-01-10",
+    "raw_desc": "滴滴出行",
+    "norm_desc": "滴滴出行",
+    "amount": -45.8,
+    "currency": "CNY",
+    "category": "交通",
+    "uid": "2026-01-10_滴滴出行_-45.80_CNY"
+  },
+  {
+    "date": "2026-01-12",
+    "raw_desc": "房租",
+    "norm_desc": "房租",
+    "amount": -3000.0,
+    "currency": "CNY",
+    "category": "居住",
+    "uid": "2026-01-12_房租_-3000.00_CNY"
+  },
+  {
+    "date": "2026-01-15",
+    "raw_desc": "瑞幸咖啡",
+    "norm_desc": "瑞幸咖啡",
+    "amount": -19.9,
+    "currency": "CNY",
+    "category": "餐饮",
+    "uid": "2026-01-15_瑞幸咖啡_-19.90_CNY"
+  },
+  {
+    "date": "2026-01-18",
+    "raw_desc": "超市购物",
+    "norm_desc": "超市购物",
+    "amount": -183.4,
+    "currency": "CNY",
+    "category": "购物",
+    "uid": "2026-01-18_超市购物_-183.40_CNY"
+  },
+  {
+    "date": "2026-01-20",
+    "raw_desc": "话费充值",
+    "norm_desc": "话费充值",
+    "amount": -99.0,
+    "currency": "CNY",
+    "category": "通讯",
+    "uid": "2026-01-20_话费充值_-99.00_CNY"
+  },
+  {
+    "date": "2026-01-22",
+    "raw_desc": "美团外卖",
+    "norm_desc": "美团外卖",
+    "amount": -68.0,
+    "currency": "CNY",
+    "category": "餐饮",
+    "uid": "2026-01-22_美团外卖_-68.00_CNY"
+  },
+  {
+    "date": "2026-01-25",
+    "raw_desc": "高铁票",
+    "norm_desc": "高铁票",
+    "amount": -553.0,
+    "currency": "CNY",
+    "category": "交通",
+    "uid": "2026-01-25_高铁票_-553.00_CNY"
+  },
+  {
+    "date": "2026-01-28",
+    "raw_desc": "星巴克(国贸店)",
+    "norm_desc": "星巴克",
+    "amount": -42.0,
+    "currency": "CNY",
+    "category": "餐饮",
+    "uid": "2026-01-28_星巴克(国贸店)_-42.00_CNY"
+  },
+  {
+    "date": "2026-01-30",
+    "raw_desc": "电费",
+    "norm_desc": "电费",
+    "amount": -126.5,
+    "currency": "CNY",
+    "category": "居住",
+    "uid": "2026-01-30_电费_-126.50_CNY"
+  }
+]
